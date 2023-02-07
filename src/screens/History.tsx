@@ -1,27 +1,55 @@
-import { useState } from "react";
-import { Heading, SectionList, Text, VStack } from "native-base";
+import { useCallback, useEffect, useState } from "react";
+import { Heading, SectionList, Text, useToast, VStack } from "native-base";
+
+import { api } from "@services/api";
 
 import { ScreenHeader } from "@components/ScreenHeader";
 import { HistoryCard } from "@components/HistoryCard";
+import { AppError } from "@utils/AppError";
+import { useFocusEffect } from "@react-navigation/native";
+import { HistoryByDayDTO } from "@dtos/HistoryByDayDTO";
 
 export function History() {
-  const [exercises, setExercises] = useState([
-    {
-      title: "26.08.22",
-      data: ["Puxada Frontal", "Remada Lateral"],
-    },
-    {
-      title: "21.07.22",
-      data: ["Puxada Frontal"],
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [exercises, setExercises] = useState<HistoryByDayDTO[]>([]);
+
+  const toast = useToast();
+
+  async function fetchHistory() {
+    try {
+      setIsLoading(true);
+
+      const response = await api.get("/history");
+
+      setExercises(response.data);
+    } catch (error) {
+      const isAppError = error instanceof AppError;
+      const title = isAppError
+        ? error.message
+        : "Não foi possível carregar o histórico";
+
+      toast.show({
+        title,
+        placement: "top",
+        bgColor: "red.500",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [])
+  );
 
   return (
     <VStack flex={1}>
       <ScreenHeader title="Histórico de Exercícios" />
       <SectionList
         sections={exercises}
-        keyExtractor={(item) => item}
+        keyExtractor={(item) => item.id}
         renderSectionHeader={({ section: { title } }) => (
           <Heading
             color={"gray.200"}
@@ -33,7 +61,7 @@ export function History() {
             {title}
           </Heading>
         )}
-        renderItem={({ item }) => <HistoryCard />}
+        renderItem={({ item }) => <HistoryCard data={item} />}
         px={8}
         contentContainerStyle={
           exercises.length === 0 && { flex: 1, justifyContent: "center" }
