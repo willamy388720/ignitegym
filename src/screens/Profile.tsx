@@ -23,6 +23,8 @@ import { useAuth } from "@hooks/useAuth";
 import { api } from "@services/api";
 import { AppError } from "@utils/AppError";
 
+import defaultUserPhotoImg from "@assets/userPhotoDefault.png";
+
 const PHOTO_SIZE = 33;
 
 type FormDataProps = {
@@ -58,9 +60,6 @@ const profileSchema = yup.object({
 export function Profile() {
   const [isUpdating, setUpdating] = useState(false);
   const [photoIsLoading, setPhotoIsLoading] = useState(false);
-  const [userPhoto, setUserPhoto] = useState(
-    "https://img.freepik.com/fotos-gratis/conceito-de-vida-rural-com-cabras-e-ovelhas-brancas_23-2149147938.jpg?w=826&t=st=1675089746~exp=1675090346~hmac=ff126446131471560a65e16f1e25cd1fb6b0083c391c9d562bd7b0d92a304f05"
-  );
 
   const toast = useToast();
   const { user, updateUserProfile } = useAuth();
@@ -94,17 +93,59 @@ export function Profile() {
         const photoInfo = await FileSystem.getInfoAsync(
           photoSelected.assets[0].uri
         );
-        if (photoInfo.size && photoInfo.size / 1024 / 1024 > 5) {
+        if (photoInfo.size && photoInfo.size / 1024 / 1024 > 10) {
           return toast.show({
             title: "Essa imagem é muito grande! Escolha uma imagem menor.",
             placement: "top",
             bgColor: "red.500",
           });
         }
-        setUserPhoto(photoSelected.assets[0].uri);
+
+        const fileExtension = photoSelected.assets[0].uri.split(".").pop();
+
+        const photoFile = {
+          name: `${user.name}.${fileExtension}`.toLowerCase(),
+          uri: photoSelected.assets[0].uri,
+          type: `${photoSelected.assets[0].type}/${fileExtension}`,
+        } as any;
+
+        const userPhotoUploadForm = new FormData();
+
+        userPhotoUploadForm.append("avatar", photoFile);
+
+        const avatarUpdatedResponse = await api.patch(
+          "/users/avatar",
+          userPhotoUploadForm,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        const userUpdated = user;
+
+        userUpdated.avatar = avatarUpdatedResponse.data.avatar;
+
+        updateUserProfile(userUpdated);
+
+        toast.show({
+          title: "Foto atualizado com sucesso!",
+          placement: "top",
+          bgColor: "green.500",
+        });
       }
     } catch (error) {
-      console.log(error);
+      const isAppError = error instanceof AppError;
+      const title = isAppError
+        ? error.message
+        : "Não foi possível atualizar a foto, tente novamente mais tarde.";
+
+      toast.show({
+        title,
+        placement: "top",
+        bgColor: "red.500",
+      });
     } finally {
       setPhotoIsLoading(false);
     }
@@ -161,9 +202,11 @@ export function Profile() {
             />
           ) : (
             <UserPhoto
-              source={{
-                uri: userPhoto,
-              }}
+              source={
+                user.avatar
+                  ? { uri: `${api.defaults.baseURL}/avatar/${user.avatar}` }
+                  : defaultUserPhotoImg
+              }
               alt="Foto do usuário"
               size={PHOTO_SIZE}
             />
