@@ -13,6 +13,8 @@ import {
   storageAuthTokenSave,
 } from "@storage/storageAuthToken";
 
+import { tagLogin, tagDeleteLogin } from "../notifications/notificationsTags";
+
 export type AuthContextDataProps = {
   user: UserDTO;
   signIn: (email: string, password: string) => Promise<void>;
@@ -72,6 +74,7 @@ export function AuthContextProvider({ children }: AuthContextProviderProps) {
           data.refresh_token
         );
         userAndTokenUpdate(data.user, data.token);
+        tagDeleteLogin();
       }
     } catch (error) {
       throw error;
@@ -107,6 +110,9 @@ export function AuthContextProvider({ children }: AuthContextProviderProps) {
       const { token } = await storageAuthTokenGet();
       if (token && userLogged) {
         userAndTokenUpdate(userLogged, token);
+        tagDeleteLogin();
+      } else {
+        tagLogin();
       }
     } catch (error) {
       throw error;

@@ -23,6 +23,7 @@ export function Home() {
   const toast = useToast();
 
   function handleExerciseDetails(id: string) {
+    console.log(id);
     navigation.navigate("exercise", { id });
   }
 

@@ -13,6 +13,7 @@ import { Exercise } from "@screens/Exercise";
 import { History } from "@screens/History";
 import { Home } from "@screens/Home";
 import { Profile } from "@screens/Profile";
+import { NotFound } from "@components/NotFound";
 
 type AppRoutes = {
   home: undefined;
@@ -21,6 +22,7 @@ type AppRoutes = {
   };
   history: undefined;
   profile: undefined;
+  notFound: undefined;
 };
 
 export type AppNavigatorRoutesProps = BottomTabNavigationProp<AppRoutes>;
@@ -60,6 +62,11 @@ export function AppRoutes() {
       <Screen
         name="exercise"
         component={Exercise}
+        options={{ tabBarButton: () => null }}
+      />
+      <Screen
+        name="notFound"
+        component={NotFound}
         options={{ tabBarButton: () => null }}
       />
       <Screen
